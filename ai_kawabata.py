@@ -1,31 +1,39 @@
 import streamlit as st
+import openai
+import os
 
-# --- シンプルなFAQデータ ---
-faq = {
-    "条約": "それはな、国と国とが『こっからはこんなふうにしましょか』って決める大事な約束のことやに。",
-    "調べ学習": "まずは何について調べたいんか、はっきりさせてみよな。キーワード集めるんが大事やに。",
-    "第一次世界大戦": "もともとは一発のピストルの音から始まったんやけど、それまでにいろんな国が力比べしとったんやわ。",
-    "資料の読み取り": "表やグラフをよう見て、数字や言葉から言えることを考えるんがコツやに〜。",
-}
+# APIキーを環境変数から取得
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-# --- ページ設定 ---
+# ページ設定
 st.set_page_config(page_title="AI川端先生", page_icon="🤖")
 
-st.title("🤖 AI川端先生")
-st.write("質問があったら、ここに聞いてみてな〜。先生が来るまでの間に答えられることもあるで！")
+st.title("🤖 AI川端先生（GPT版）")
+st.write("質問があったら、ここに聞いてみてな〜。\n先生が来るまでの間に答えられることもあるで！")
 
-# --- ユーザー入力 ---
+# 入力フォーム
 user_input = st.text_input("なんでも聞いてな：", "")
 
-if user_input:
-    # キーワードにヒットするかチェック
-    reply = None
-    for keyword in faq:
-        if keyword in user_input:
-            reply = faq[keyword]
-            break
+# プロンプト設定
+system_prompt = """あなたは中学生に社会科を教える優しい先生「川端先生」です。
+三重弁をまじえた、親しみやすく丁寧な口調で答えてください。
+難しい言葉は使わず、かみくだいて説明してください。
+"""
 
-    if reply:
-        st.markdown(f"**AI川端先生：** {reply}")
-    else:
-        st.markdown("**AI川端先生：** うーん、それはちょっとむずかしいなぁ。ほんまの先生にも聞いてみてな！")
+if user_input:
+    with st.spinner("川端先生が考えとるで…🤔"):
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_input}
+                ],
+                temperature=0.8,
+                max_tokens=400,
+            )
+            answer = response.choices[0].message["content"]
+            st.markdown(f"**AI川端先生：** {answer}")
+
+        except Exception as e:
+            st.error(f"エラーが発生したで：{e}")
